@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Intelligent Shipment Prioritization Engine</title>
+
+    <!-- DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #141e30, #243b55);
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1400px;
+            margin: auto;
+        }
+
+        .top {
+            text-align: center;
+            padding: 30px;
+            color: white;
+        }
+
+        .card {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .kpi-container {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .kpi {
+            flex: 1;
+            min-width: 150px;
+            text-align: center;
+        }
+
+        .kpi h2 {
+            font-size: 24px;
+            margin: 6px 0;
+        }
+
+        .high { color: #dc3545; }
+        .medium { color: #ffc107; }
+        .low { color: #28a745; }
+
+        select {
+            padding: 6px;
+            margin-top: 8px;
+        }
+
+        table.dataTable {
+            width: 100% !important;
+        }
+
+        .chart-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .chart-box {
+            flex: 1;
+            min-width: 350px;
+        }
+
+        canvas {
+            height: 260px !important;
+        }
+
+        .download-btn {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .download-btn a {
+            background: #28a745;
+            color: white;
+            padding: 8px 18px;
+            border-radius: 6px;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <div class="top">
+        <h1>🚀 Intelligent Shipment Prioritization Engine</h1>
+        <p>AI-Powered Risk Analytics Dashboard</p>
+    </div>
+
+    <!-- Upload -->
+    <div class="card">
+        <form method="POST" enctype="multipart/form-data">
+            <input type="file" name="file" required>
+            <button type="submit">Run Prediction</button>
+        </form>
+    </div>
+
+    {% if total %}
+
+    <!-- KPI Section -->
+    <div class="card kpi-container">
+        <div class="kpi"><h4>Total Shipments</h4><h2>{{ total }}</h2></div>
+        <div class="kpi"><h4>High Risk</h4><h2 class="high">{{ high }}</h2></div>
+        <div class="kpi"><h4>Medium Risk</h4><h2 class="medium">{{ medium }}</h2></div>
+        <div class="kpi"><h4>Low Risk</h4><h2 class="low">{{ low }}</h2></div>
+        <div class="kpi"><h4>High Risk %</h4><h2 class="high">{{ high_pct }}%</h2></div>
+        <div class="kpi"><h4>Average Risk %</h4><h2>{{ avg_risk }}%</h2></div>
+    </div>
+
+    <!-- Risk Filter -->
+    <div class="card">
+        <label>Filter by Risk Category:</label>
+        <select id="riskFilter">
+            <option value="">All</option>
+            <option>High Risk</option>
+            <option>Medium Risk</option>
+            <option>Low Risk</option>
+        </select>
+    </div>
+
+    <!-- Charts -->
+    <div class="chart-row">
+
+        <!-- Donut -->
+        <div class="card chart-box">
+            <h4>Risk Distribution</h4>
+            <canvas id="riskChart"></canvas>
+        </div>
+
+        <!-- NEW: Risk Distribution by Time Remaining -->
+        <div class="card chart-box">
+            <h4>Risk Distribution by Time Remaining</h4>
+            <canvas id="timeChart"></canvas>
+        </div>
+
+        <!-- City Ranking -->
+        <div class="card chart-box">
+            <h4>Top Risky Cities</h4>
+            <canvas id="cityChart"></canvas>
+        </div>
+
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+        <h3>Shipment Preview</h3>
+        {{ preview_table | safe }}
+    </div>
+
+    <!-- Download -->
+    <div class="download-btn">
+        <a href="{{ url_for('download_file', filename=download_file) }}">
+            Download Full Processed File
+        </a>
+    </div>
+
+    {% endif %}
+</div>
+
+<script>
+$(document).ready(function(){
+
+    var table = $('.table').DataTable({scrollX:true});
+
+    $('#riskFilter').on('change', function(){
+        table.search(this.value).draw();
+    });
+
+    // Risk Distribution Donut
+    {% if risk_split %}
+    new Chart(document.getElementById('riskChart'), {
+        type:'doughnut',
+        data:{
+            labels:Object.keys({{ risk_split|tojson }}),
+            datasets:[{
+                data:Object.values({{ risk_split|tojson }}),
+                backgroundColor:['#dc3545','#ffc107','#28a745']
+            }]
+        }
+    });
+    {% endif %}
+
+    // Risk by Time Remaining (Stacked)
+    {% if time_risk_data %}
+    new Chart(document.getElementById('timeChart'), {
+        type:'bar',
+        data:{
+            labels:Object.keys({{ time_risk_data|tojson }}),
+            datasets:[
+                {
+                    label:'High Risk',
+                    data:Object.values({{ time_risk_data|tojson }}).map(x => x["High Risk"]),
+                    backgroundColor:'#dc3545'
+                },
+                {
+                    label:'Medium Risk',
+                    data:Object.values({{ time_risk_data|tojson }}).map(x => x["Medium Risk"]),
+                    backgroundColor:'#ffc107'
+                },
+                {
+                    label:'Low Risk',
+                    data:Object.values({{ time_risk_data|tojson }}).map(x => x["Low Risk"]),
+                    backgroundColor:'#28a745'
+                }
+            ]
+        },
+        options:{
+            responsive:true,
+            plugins:{ legend:{ position:'top' } },
+            scales:{
+                x:{ stacked:true },
+                y:{ stacked:true }
+            }
+        }
+    });
+    {% endif %}
+
+    // City Ranking
+    {% if city_ranking %}
+    new Chart(document.getElementById('cityChart'), {
+        type:'bar',
+        data:{
+            labels:Object.keys({{ city_ranking|tojson }}),
+            datasets:[{
+                label:'Avg Risk %',
+                data:Object.values({{ city_ranking|tojson }}),
+                backgroundColor:'#6f42c1'
+            }]
+        }
+    });
+    {% endif %}
+
+});
+</script>
+
+</body>
+</html>
