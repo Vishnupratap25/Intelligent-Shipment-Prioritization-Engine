@@ -130,56 +130,72 @@ button:hover{
     background-color:#1D4ED8 !important;
 }
 
+
 /* =====================================================
    FIX DROPDOWN TEXT VISIBILITY (ADDED — NOTHING REMOVED)
    ===================================================== */
 
+/* Dropdown menu background */
 div[data-baseweb="popover"]{
     background-color:#1F2937 !important;
 }
 
+/* Dropdown options text */
 div[data-baseweb="menu"] div{
     color:white !important;
 }
 
+/* Selected option tags */
 div[data-baseweb="tag"]{
     background-color:#2563EB !important;
     color:white !important;
 }
 
+/* Multiselect text */
 div[data-baseweb="select"] span{
     color:white !important;
 }
 
+/* Dropdown option hover */
 div[data-baseweb="menu"] div:hover{
     background-color:#374151 !important;
     color:white !important;
 }
 
+
 /* =====================================================
-   ADVANCED DROPDOWN FIX
+   ADVANCED DROPDOWN FIX (NEW ADDITION — NOTHING REMOVED)
+   Ensures dark dropdown with visible text
    ===================================================== */
 
+/* Strong override for dropdown container */
 [data-baseweb="popover"] [role="listbox"]{
     background-color:#1F2937 !important;
 }
 
+/* Each dropdown item */
 [data-baseweb="popover"] [role="option"]{
     background-color:#1F2937 !important;
     color:#FFFFFF !important;
     font-weight:500 !important;
 }
 
+/* Hover highlight */
 [data-baseweb="popover"] [role="option"]:hover{
     background-color:#374151 !important;
+    color:#FFFFFF !important;
 }
 
+/* Selected option highlight */
 [data-baseweb="popover"] [aria-selected="true"]{
     background-color:#2563EB !important;
+    color:#FFFFFF !important;
 }
 
+
 /* =====================================================
-   FINAL FIX FOR SELECT BOX VISIBILITY
+   FINAL FIX FOR SELECT BOX VISIBILITY (NEW ADDITION)
+   Makes the selectbox itself dark so text is readable
    ===================================================== */
 
 div[data-baseweb="select"] > div{
@@ -192,8 +208,10 @@ div[data-baseweb="select"] input{
     color:#FFFFFF !important;
 }
 
+
 /* =====================================================
-   TOOLTIP VISIBILITY FIX
+   TOOLTIP VISIBILITY FIX (NEW ADDITION — FOR METRIC HELP)
+   Makes tooltip readable in dark mode
    ===================================================== */
 
 [data-testid="stTooltipContent"]{
@@ -205,54 +223,9 @@ div[data-baseweb="select"] input{
     max-width:260px !important;
 }
 
+/* Ensure tooltip text stays dark */
 [data-testid="stTooltipContent"] *{
     color:#000000 !important;
-}
-
-/* =====================================================
-   DATAFRAME COLUMN MENU FIX
-   ===================================================== */
-
-[data-testid="stDataFrame"] [role="menu"]{
-    background-color:#FFFFFF !important;
-}
-
-[data-testid="stDataFrame"] [role="menuitem"]{
-    color:#000000 !important;
-    font-weight:500 !important;
-}
-
-[data-testid="stDataFrame"] [role="menuitem"]:hover{
-    background-color:#E5E7EB !important;
-}
-
-/* =====================================================
-   AG-GRID MENU FIX
-   ===================================================== */
-
-.ag-menu{
-    background-color:#FFFFFF !important;
-}
-
-.ag-menu-option{
-    color:#000000 !important;
-    font-weight:500 !important;
-}
-
-.ag-menu-option:hover{
-    background-color:#E5E7EB !important;
-}
-
-.ag-menu-option-icon{
-    color:#000000 !important;
-}
-
-.ag-menu-separator{
-    border-top:1px solid #D1D5DB !important;
-}
-
-.ag-menu-option.ag-disabled{
-    color:#6B7280 !important;
 }
 
 </style>
@@ -283,7 +256,7 @@ CITY_COORDS = {
 "DELHI": (28.7041,77.1025),
 "MUMBAI": (19.0760,72.8777),
 "CHENNAI": (13.0827,80.2707),
-"BANGALORE": (12.9716, 77.5946),
+"BENGALURU": (12.9716,77.5946),
 "HYDERABAD": (17.3850,78.4867),
 "KOLKATA": (22.5726,88.3639),
 "JAIPUR": (26.9124,75.7873),
@@ -490,13 +463,14 @@ if uploaded_file:
         [
             "📊 Overview",
             "📈 Risk Analysis",
-            "⏳ NCL Monitor",
+            "⏳ SLA Monitor",
             "🔮 Predict Single Shipment",
         ]
     )
-# ==============================
-# TAB 1
-# ==============================
+
+    # ==============================
+    # TAB 1
+    # ==============================
 
     with tab1:
 
@@ -518,13 +492,14 @@ if uploaded_file:
         low_count = (filtered_df["Risk_Category"] == "Low Risk").sum()
 
         high_pct = round((high_count / total) * 100, 2)
+        avg_risk = round(filtered_df["Failure_Risk_%"].mean(), 2)
         expected_breaches = (filtered_df["Failure_Risk_%"] >= threshold * 100).sum()
 
         col1, col2, col3, col4 = st.columns(4)
 
         col1.metric("Total Shipments", total)
         col2.metric("High Risk %", f"{high_pct}%")
-        col3.metric("Medium Risk", medium_count)
+        col3.metric("Average Risk %", avg_risk)
         col4.metric("Predicted Breaches", expected_breaches)
 
         st.subheader("📦 Risk Category Breakdown")
@@ -546,13 +521,11 @@ if uploaded_file:
             city_col = city_cols[0]
 
             city_summary = (
-                filtered_df
-                .groupby(city_col)
+                filtered_df.groupby(city_col)
                 .agg(
-                    Total_Shipments=("Risk_Category", "count"),
-                    High_Risk_Shipments=("Risk_Category", lambda x: (x == "High Risk").sum()),
-                    Medium_Risk_Shipments=("Risk_Category", lambda x: (x == "Medium Risk").sum()),
-                    Low_Risk_Shipments=("Risk_Category", lambda x: (x == "Low Risk").sum())
+                    Total_Shipments=("Failure_Risk_%", "count"),
+                    Avg_Risk_Percent=("Failure_Risk_%", "mean"),
+                    High_Risk_Shipments=("Risk_Category", lambda x: (x == "High Risk").sum())
                 )
                 .reset_index()
             )
@@ -566,13 +539,7 @@ if uploaded_file:
             with colA:
                 sort_col = st.selectbox(
                     "Sort By",
-                    [
-                        city_col,
-                        "Total_Shipments",
-                        "High_Risk_Shipments",
-                        "Medium_Risk_Shipments",
-                        "Low_Risk_Shipments"
-                    ]
+                    [city_col, "Total_Shipments", "Avg_Risk_Percent", "High_Risk_Shipments"]
                 )
 
             with colB:
@@ -590,331 +557,233 @@ if uploaded_file:
 
             st.dataframe(city_summary, use_container_width=True)
 
-        # ==============================
-        # CITY SEARCH DROPDOWN
-        # ==============================
+            # ==============================
+            # CITY SEARCH DROPDOWN
+            # ==============================
 
-        st.divider()
-        st.subheader("🔎 Search City Shipment Risk")
+            st.divider()
+            st.subheader("🔎 Search City Shipment Risk")
 
-        city_list = sorted(city_summary[city_col].dropna().unique())
-        city_list = ["Select City"] + city_list
+            city_list = sorted(city_summary[city_col].dropna().unique())
+            city_list = ["Select City"] + city_list
 
-        selected_city = st.selectbox(
-            "Select or Search City",
-            city_list
-        )
+            selected_city = st.selectbox(
+                "Select or Search City",
+                city_list
+            )
 
-        if selected_city != "Select City":
+            if selected_city != "Select City":
 
-            city_data = city_summary[city_summary[city_col] == selected_city]
+                city_data = city_summary[city_summary[city_col] == selected_city]
 
-            if not city_data.empty:
+                if not city_data.empty:
 
-                shipments = int(city_data["Total_Shipments"].values[0])
-                high_risk_city = int(city_data["High_Risk_Shipments"].values[0])
-                medium_risk_city = int(city_data["Medium_Risk_Shipments"].values[0])
-                low_risk_city = int(city_data["Low_Risk_Shipments"].values[0])
+                    shipments = int(city_data["Total_Shipments"].values[0])
+                    risk = float(city_data["Avg_Risk_Percent"].values[0])
+                    high_risk_city = int(city_data["High_Risk_Shipments"].values[0])
 
-                colX, colY, colZ, colW = st.columns(4)
+                    colX, colY, colZ = st.columns(3)
 
-                colX.metric("📦 Total Shipments", shipments)
-                colY.metric("🔴 High Risk Shipments", high_risk_city)
-                colZ.metric("🟠 Medium Risk Shipments", medium_risk_city)
-                colW.metric("🟢 Low Risk Shipments", low_risk_city)
+                    colX.metric("📦 Total Shipments", shipments)
+                    colY.metric("⚠ Average Risk %", f"{risk:.2f}%")
+                    colZ.metric("🔴 High Risk Shipments", high_risk_city)
 
-                city_shipments = filtered_df[
-                    filtered_df[city_col] == selected_city
-                ]
+                    # ==============================
+                    # SHOW SHIPMENT DETAILS
+                    # ==============================
 
-                st.divider()
-                st.subheader(f"📦 Shipment Details for {selected_city}")
+                    st.divider()
+                    st.subheader(f"📦 Shipment Details for {selected_city}")
 
-                if not city_shipments.empty:
+                    city_shipments = filtered_df[
+                        filtered_df[city_col] == selected_city
+                    ]
 
-                    city_shipments = city_shipments.sort_values(
-                        by="Failure_Risk_%",
-                        ascending=False
+                    if not city_shipments.empty:
+
+                        city_shipments = city_shipments.sort_values(
+                            by="Failure_Risk_%",
+                            ascending=False
+                        )
+
+                        st.dataframe(
+                            city_shipments,
+                            use_container_width=True
+                        )
+
+                        st.download_button(
+                            label="⬇ Download Shipment Data",
+                            data=city_shipments.to_csv(index=False),
+                            file_name=f"{selected_city}_shipments.csv",
+                            mime="text/csv"
+                        )
+
+                    else:
+                        st.info("No shipment data available for this city.")
+
+            # ==============================
+            # CITY RISK BAR CHART
+            # ==============================
+
+            fig_city = px.bar(
+                city_summary,
+                x=city_col,
+                y="Avg_Risk_Percent",
+                color="Avg_Risk_Percent",
+                title="Average Risk % by City"
+            )
+
+            st.plotly_chart(fig_city, use_container_width=True)
+
+            # ==============================
+            # TOP 10 HIGH RISK CITIES
+            # ==============================
+
+            st.divider()
+            st.subheader("🔥 Top 10 Cities With Highest SLA Risk")
+
+            city_summary_filtered = city_summary[
+                city_summary["Total_Shipments"] >= 10
+            ]
+
+            top_risk_cities = city_summary_filtered.sort_values(
+                "Avg_Risk_Percent",
+                ascending=False
+            ).head(10)
+
+            fig_top = px.bar(
+                top_risk_cities,
+                x="Avg_Risk_Percent",
+                y=city_col,
+                orientation="h",
+                color="Avg_Risk_Percent",
+                title="Top 10 High Risk Cities (≥10 Shipments)",
+                color_continuous_scale="Reds"
+            )
+
+            fig_top.update_layout(
+                yaxis=dict(categoryorder="total ascending")
+            )
+
+            st.plotly_chart(fig_top, use_container_width=True)
+
+            # ==============================
+            # AI OPERATIONAL INSIGHTS
+            # ==============================
+
+            st.divider()
+            st.subheader("🧠 AI Operational Insights")
+
+            worst_city = city_summary.sort_values("Avg_Risk_Percent", ascending=False).iloc[0]
+            worst_city_name = worst_city[city_col]
+            worst_risk = worst_city["Avg_Risk_Percent"]
+
+            high_risk_city = city_summary.sort_values("High_Risk_Shipments", ascending=False).iloc[0]
+            high_ship_city = high_risk_city[city_col]
+            high_ship_count = high_risk_city["High_Risk_Shipments"]
+            total_ship_count = high_risk_city["Total_Shipments"]
+
+            colA, colB = st.columns(2)
+
+            with colA:
+                st.info(
+                    f"""
+🚨 **Highest Risk Region**
+
+**{worst_city_name}** currently shows the highest predicted SLA breach risk  
+with an average risk of **{worst_risk:.2f}%**
+
+Suggested action:
+• Monitor shipments closely  
+• Prioritize hub processing
+"""
+                )
+
+            with colB:
+                st.warning(
+                    f"""
+⚠ **Operational Alert**
+
+**{high_ship_city}** currently has the highest number of high-risk shipments
+
+📦 Total Shipments: **{int(total_ship_count)}**
+
+🔴 High Risk Shipments: **{int(high_ship_count)}**
+
+These shipments have a higher probability of SLA breach and should be prioritized.
+"""
+                )
+
+            # ==============================
+            # INDIA SHIPMENT RISK HEATMAP
+            # ==============================
+
+            st.subheader("🗺 India Shipment Risk Heatmap")
+
+            map_data = []
+
+            for city in city_summary[city_col]:
+
+                city_upper = str(city).upper()
+
+                if city_upper in CITY_COORDS:
+
+                    lat, lon = CITY_COORDS[city_upper]
+
+                    risk = float(
+                        city_summary[
+                            city_summary[city_col] == city
+                        ]["Avg_Risk_Percent"].values[0]
                     )
 
-                    st.dataframe(city_shipments, use_container_width=True)
-
-                    st.download_button(
-                        label="⬇ Download Shipment Data",
-                        data=city_shipments.to_csv(index=False),
-                        file_name=f"{selected_city}_shipments.csv",
-                        mime="text/csv"
+                    total_ship = int(
+                        city_summary[
+                            city_summary[city_col] == city
+                        ]["Total_Shipments"].values[0]
                     )
 
-        # ==============================
-        # TOP 10 HIGH RISK CITIES (RISK COMPOSITION)
-        # ==============================
-
-        st.divider()
-        st.subheader("🔥 Top 10 Cities Risk Composition")
-
-        # Filter cities with enough shipments
-        city_summary_filtered = city_summary[
-            city_summary["Total_Shipments"] >= 10
-        ]
-
-        # Select top 10 cities by high risk shipments
-        top_risk_cities = city_summary_filtered.sort_values(
-            "High_Risk_Shipments",
-            ascending=False
-        ).head(10)
-
-        # Create stacked bar chart
-        fig_top = px.bar(
-            top_risk_cities,
-            x=city_col,
-            y=[
-                "High_Risk_Shipments",
-                "Medium_Risk_Shipments",
-                "Low_Risk_Shipments"
-            ],
-            title="Top 10 Cities Shipment Risk Distribution",
-            color_discrete_map={
-                "High_Risk_Shipments": "#EF4444",   # red
-                "Medium_Risk_Shipments": "#F59E0B", # orange
-                "Low_Risk_Shipments": "#22C55E"     # green
-            }
-        )
-
-        fig_top.update_layout(
-            barmode="stack",
-            xaxis_title="City",
-            yaxis_title="Number of Shipments"
-        )
-
-        st.plotly_chart(fig_top, use_container_width=True)
-
-        # ==============================
-        # AI OPERATIONAL INSIGHTS
-        # ==============================
-
-        st.divider()
-        st.subheader("🧠 AI Operational Insights")
-
-        worst_city = city_summary.sort_values(
-            "High_Risk_Shipments",
-            ascending=False
-        ).iloc[0]
-
-        worst_city_name = worst_city[city_col]
-        high_ship_count = worst_city["High_Risk_Shipments"]
-        total_ship_count = worst_city["Total_Shipments"]
-
-        colA, colB = st.columns(2)
-
-        with colA:
-            st.info(
-    f"""
-    🚨 **Highest Risk Region**
-
-    **{worst_city_name}** has the highest number of high-risk shipments.
-
-    Suggested action:
-    • Monitor shipments closely  
-    • Prioritize hub processing
-    """
-            )
-
-        with colB:
-            st.warning(
-    f"""
-    ⚠ **Operational Alert**
-
-    **{worst_city_name}** currently has the highest number of high-risk shipments.
-
-    📦 Total Shipments: **{int(total_ship_count)}**
-
-    🔴 High Risk Shipments: **{int(high_ship_count)}**
-    """
+                    high_ship = int(
+                        city_summary[
+                            city_summary[city_col] == city
+                        ]["High_Risk_Shipments"].values[0]
                     )
-            
-        # ==============================
-        # INDIA SHIPMENT RISK HEATMAP
-        # ==============================
 
-        st.subheader("🗺 India Shipment Risk Heatmap")
+                    map_data.append({
+                        "city": city_upper,
+                        "lat": lat,
+                        "lon": lon,
+                        "risk": risk,
+                        "Total_Shipments": total_ship,
+                        "High_Risk_Shipments": high_ship
+                    })
 
-        # ==============================
-        # CITY ALIAS MAPPING
-        # ==============================
+            if map_data:
 
-        CITY_ALIAS = {
-            "BENGALURU": "BANGALORE",
-            "BANGALORE URBAN": "BANGALORE",
-            "BANGALORE RURAL": "BANGALORE",
-            "BLR": "BANGALORE",
-            "DELHI NCR": "DELHI"
-        }
+                map_df = pd.DataFrame(map_data)
 
-        # ==============================
-        # FILTER ONLY IMPORTANT CITIES
-        # ==============================
+                fig_map = px.scatter_mapbox(
+                    map_df,
+                    lat="lat",
+                    lon="lon",
+                    size="risk",
+                    color="risk",
+                    hover_name="city",
+                    hover_data={
+                        "lat": False,
+                        "lon": False,
+                        "risk": True,
+                        "Total_Shipments": True,
+                        "High_Risk_Shipments": True
+                    },
+                    color_continuous_scale="Reds",
+                    zoom=4,
+                    height=500
+                )
 
-        city_summary["city_upper"] = (
-            city_summary[city_col]
-            .astype(str)
-            .str.upper()
-            .str.strip()
-            .replace(CITY_ALIAS)
-        )
-
-        city_summary = city_summary[
-            city_summary["city_upper"].isin(CITY_COORDS.keys())
-        ]
-
-        # ==============================
-        # MAP VIEW SELECTOR
-        # ==============================
-
-        map_type = st.radio(
-            "Select Map View",
-            ["City Risk Map", "Risk Hotspot Map"],
-            horizontal=True
-        )
-
-        # ==============================
-        # BUILD MAP DATA
-        # ==============================
-
-        map_data = []
-
-        for _, row in city_summary.iterrows():
-
-            city_upper = row["city_upper"]
-
-            coords = CITY_COORDS.get(city_upper)
-
-            if coords:
-
-                lat, lon = coords
-
-                total_ship = int(row["Total_Shipments"])
-                high_ship = int(row["High_Risk_Shipments"])
-                medium_ship = int(row["Medium_Risk_Shipments"])
-                low_ship = int(row["Low_Risk_Shipments"])
-
-                map_data.append({
-                    "city": city_upper,
-                    "lat": lat,
-                    "lon": lon,
-
-                    "risk": max(high_ship, 1),
-
-                    "bubble_size": 18,
-
-                    "Total_Shipments": total_ship,
-                    "High_Risk_Shipments": high_ship,
-                    "Medium_Risk_Shipments": medium_ship,
-                    "Low_Risk_Shipments": low_ship
-                })
-
-        # ==============================
-        # CREATE DATAFRAME
-        # ==============================
-
-        if map_data:
-
-            map_df = pd.DataFrame(map_data)
-
-            # LOG SCALE COLOR
-            map_df["risk_log"] = np.log1p(map_df["risk"])
-
-            # ==============================
-            # CITY RISK BUBBLE MAP
-            # ==============================
-
-            fig_map = px.scatter_mapbox(
-                map_df,
-                lat="lat",
-                lon="lon",
-                size="bubble_size",
-                size_max=18,
-                color="risk_log",
-
-                hover_name="city",
-
-                # TOOLTIP CONTROL (ONLY SHOW THESE)
-                hover_data={
-                    "lat": False,
-                    "lon": False,
-                    "risk": False,
-                    "risk_log": False,
-                    "bubble_size": False,
-                    "Total_Shipments": True,
-                    "High_Risk_Shipments": True,
-                    "Medium_Risk_Shipments": True,
-                    "Low_Risk_Shipments": True
-                },
-
-                # Stronger color palette
-                color_continuous_scale=[
-                    "#FFE5E5",
-                    "#FF9999",
-                    "#FF4D4D",
-                    "#E60000",
-                    "#990000"
-                ],
-
-                zoom=4,
-                height=700
-            )
-
-            fig_map.update_traces(
-                marker=dict(opacity=0.95)
-            )
-
-            fig_map.update_layout(
-                mapbox_style="carto-positron",
-                mapbox=dict(
-                    center=dict(lat=22.5, lon=78.9),
-                    zoom=4
-                ),
-                margin={"r":0,"t":0,"l":0,"b":0}
-            )
-
-            # ==============================
-            # RISK HOTSPOT HEATMAP
-            # ==============================
-
-            import plotly.graph_objects as go
-
-            fig_hotspot = go.Figure(go.Densitymapbox(
-                lat=map_df["lat"],
-                lon=map_df["lon"],
-                z=map_df["High_Risk_Shipments"],
-                radius=40,
-                colorscale="Reds",
-                showscale=True
-            ))
-
-            fig_hotspot.update_layout(
-                mapbox_style="carto-positron",
-                mapbox_zoom=4,
-                mapbox_center={"lat": 22.5, "lon": 78.9},
-                height=700,
-                margin={"r":0,"t":0,"l":0,"b":0}
-            )
-
-            # ==============================
-            # MAP SWITCH
-            # ==============================
-
-            if map_type == "City Risk Map":
+                fig_map.update_layout(mapbox_style="open-street-map")
 
                 st.plotly_chart(fig_map, use_container_width=True)
 
-            else:
-
-                st.plotly_chart(fig_hotspot, use_container_width=True)
-
-        else:
-
-            st.warning("No city coordinates matched. Check CITY_COORDS dictionary.")
 # ==============================
 # TAB 2
 # ==============================
@@ -1113,23 +982,7 @@ if uploaded_file:
 
     with tab3:
 
-        st.subheader("⏳ Live Commitment Breach Control Tower")
-
-        # ==============================
-        # BUTTON STYLE CSS
-        # ==============================
-
-        st.markdown("""
-        <style>
-        div.stButton > button {
-            width: 100%;
-            border-radius: 10px;
-            height: 48px;
-            font-weight: 600;
-            font-size: 15px;
-        }
-        </style>
-        """, unsafe_allow_html=True)
+        st.subheader("⏳ Live SLA Breach Control Tower")
 
         # Manual refresh button
         colA, colB = st.columns([1,5])
@@ -1156,6 +1009,7 @@ if uploaded_file:
 
             # ==============================
             # CREATE STATUS COLUMN
+            # (TIME + RISK BASED LOGIC)
             # ==============================
 
             status_list = []
@@ -1167,6 +1021,10 @@ if uploaded_file:
 
                 delivery_status = str(row.get("commit_status", "")).lower()
                 last_scan = str(row.get("last_scan", "")).upper()
+
+                # ==============================
+                # NEW DELIVERY DETECTION LOGIC
+                # ==============================
 
                 delivered_codes = ["POD", "DEX04", "DDEX16"]
 
@@ -1182,12 +1040,14 @@ if uploaded_file:
                 elif sec < 2 * 3600:
                     status_list.append("Critical")
 
+                # High risk shipments become critical even if time >2hr
                 elif sec < 6 * 3600 and risk >= 70:
                     status_list.append("Critical")
 
                 elif sec < 6 * 3600:
                     status_list.append("Warning")
 
+                # Very high risk shipments escalated
                 elif risk >= 90:
                     status_list.append("Warning")
 
@@ -1209,62 +1069,20 @@ if uploaded_file:
             sla_df = sla_df.sort_values("Priority_Score", ascending=False)
 
             # ==============================
-            # CONTROL TOWER STATUS BAR
-            # ==============================
-
-            breach_count = (sla_df["SLA_Status"]=="Breached").sum()
-            critical_count = (sla_df["SLA_Status"]=="Critical").sum()
-            warning_count = (sla_df["SLA_Status"]=="Warning").sum()
-            safe_count = (sla_df["SLA_Status"]=="Safe").sum()
-            delivered_count = (sla_df["SLA_Status"]=="Delivered").sum()
-
-            st.markdown(
-                f"""
-                <div style="background:#111827;padding:10px;border-radius:8px;font-size:16px">
-                🚨 <b>{breach_count}</b> Breached &nbsp;&nbsp; |
-                🔴 <b>{critical_count}</b> Critical &nbsp;&nbsp; |
-                🟠 <b>{warning_count}</b> Warning &nbsp;&nbsp; |
-                🟢 <b>{safe_count}</b> Safe &nbsp;&nbsp; |
-                📦 <b>{delivered_count}</b> Delivered
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-            # ==============================
-            # FILTER BUTTONS (OLD CODE - KEPT)
+            # FILTERS
             # ==============================
 
             st.subheader("🎛 Shipment Filters")
 
-            statuses = ["Breached","Critical","Warning","Safe","Delivered"]
-
-            # Initial state → all inactive
-            if "status_filter_state" not in st.session_state:
-                st.session_state.status_filter_state = {
-                    "Breached": False,
-                    "Critical": False,
-                    "Warning": False,
-                    "Safe": False,
-                    "Delivered": False
-                }
-
-            # ==============================
-            # NEW DROPDOWN FILTER (ADDED)
-            # ==============================
-
             status_filter = st.multiselect(
                 "Filter by Shipment Status",
-                statuses,
-                default=statuses
+                ["Breached","Critical","Warning","Safe","Delivered"],
+                default=["Breached","Critical","Warning","Safe"]
             )
 
-            if len(status_filter) > 0:
-                sla_df = sla_df[sla_df["SLA_Status"].isin(status_filter)]
-            else:
-                sla_df = sla_df.iloc[0:0]
+            sla_df = sla_df[sla_df["SLA_Status"].isin(status_filter)]
 
-              # ==============================
+            # ==============================
             # CARD DISPLAY LIMIT
             # ==============================
 
@@ -1332,7 +1150,7 @@ if uploaded_file:
                 col1.markdown(f"**Shipment**  \n`{shipment}`")
                 col2.metric("Remaining Time", countdown)
                 col3.metric("Risk %", f"{risk:.2f}%")
-                col4.metric("Status", status_icon)    
+                col4.metric("Status", status_icon)
 
             # ==============================
             # FULL SHIPMENT TABLE
@@ -1359,26 +1177,13 @@ if uploaded_file:
 
             table_df["Remaining Time"] = table_df["Remaining_Seconds"].apply(format_time)
 
-            # Select required columns safely (only if they exist)
-            cols = [
-                "Trk Nos",
-                "Remaining Time",
-                "Failure_Risk_%",
-                "SLA_Status",
-                "Dest Loc",
-                "recp_pstl_cd",
-                "last_scan",
-                "Last Scan Loc",
-                "City name"
-            ]
-
-            cols = [c for c in cols if c in table_df.columns]
-
-            display_table = table_df[cols].rename(
+            display_table = table_df[
+                ["Trk Nos","Remaining Time","Failure_Risk_%","SLA_Status"]
+            ].rename(
                 columns={
-                    "Trk Nos": "Shipment",
-                    "Failure_Risk_%": "Risk %",
-                    "SLA_Status": "Status"
+                    "Trk Nos":"Shipment",
+                    "Failure_Risk_%":"Risk %",
+                    "SLA_Status":"Status"
                 }
             )
 

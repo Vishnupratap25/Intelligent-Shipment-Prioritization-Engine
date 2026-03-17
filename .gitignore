@@ -18,20 +18,15 @@ venv/
 # OS files
 .DS_Store
 
-# Project large folders (do not upload)
+# Project large folders
 uploads/
 outputs/
 
-# Optional: ignore large models if repo becomes too big
-# models/
+# Ignore all model files
 models/*.pkl
+
+# Allow only the required models for deployment
 !models/sla_binary_stable_model_20260304_1121.pkl
 !models/label_encoders.pkl
 !models/failure_threshold.pkl
 !models/model_metrics.pkl
-models/*.pkl
-!models/sla_binary_stable_model_20260304_1121.pkl
-!models/label_encoders.pkl
-!models/failure_threshold.pkl
-!models/model_metrics.pkl
-models/
