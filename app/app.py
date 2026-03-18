@@ -462,25 +462,25 @@ if uploaded_file:
     df["Failure_Risk_%"] = (probs * 100).round(2)
     df["Risk_Category"] = df["Failure_Risk_%"].apply(categorize_risk)
 
-    # ==============================
-    # SIDEBAR FILTERS
-    # ==============================
+    # # ==============================
+    # # SIDEBAR FILTERS
+    # # ==============================
 
-    st.sidebar.header("🔎 Filter Shipments")
+    # st.sidebar.header("🔎 Filter Shipments")
 
-    risk_filter = st.sidebar.multiselect(
-        "Risk Category",
-        df["Risk_Category"].unique(),
-        default=df["Risk_Category"].unique()
-    )
+    # risk_filter = st.sidebar.multiselect(
+    #     "Risk Category",
+    #     df["Risk_Category"].unique(),
+    #     default=df["Risk_Category"].unique()
+    # )
 
-    min_risk, max_risk = st.sidebar.slider("Failure Risk %", 0, 100, (0, 100))
+    # min_risk, max_risk = st.sidebar.slider("Failure Risk %", 0, 100, (0, 100))
 
-    filtered_df = df[
-        (df["Risk_Category"].isin(risk_filter)) &
-        (df["Failure_Risk_%"] >= min_risk) &
-        (df["Failure_Risk_%"] <= max_risk)
-    ]
+    # filtered_df = df[
+    #     (df["Risk_Category"].isin(risk_filter)) &
+    #     (df["Failure_Risk_%"] >= min_risk) &
+    #     (df["Failure_Risk_%"] <= max_risk)
+    # ]
 
     # ==============================
     # CREATE TABS
