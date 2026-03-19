@@ -1333,7 +1333,6 @@ if uploaded_file:
                 col2.metric("Remaining Time", countdown)
                 col3.metric("Risk %", f"{risk:.2f}%")
                 col4.metric("Status", status_icon)    
-
             # ==============================
             # FULL SHIPMENT TABLE
             # ==============================
@@ -1359,7 +1358,20 @@ if uploaded_file:
 
             table_df["Remaining Time"] = table_df["Remaining_Seconds"].apply(format_time)
 
-            # Select required columns safely (only if they exist)
+            # ==============================
+            # ADD LAST SCAN DATE TIME (SAFE)
+            # ==============================
+            # This will only add if column exists (no crash)
+
+            if "Last Scan Date Time" in table_df.columns:
+                table_df["Last Scan Date Time"] = pd.to_datetime(
+                    table_df["Last Scan Date Time"], errors="coerce"
+                ).dt.strftime("%Y-%m-%d %H:%M:%S")
+
+            # ==============================
+            # SELECT REQUIRED COLUMNS
+            # ==============================
+
             cols = [
                 "Trk Nos",
                 "Remaining Time",
@@ -1368,6 +1380,7 @@ if uploaded_file:
                 "Dest Loc",
                 "recp_pstl_cd",
                 "last_scan",
+                "Last Scan Date Time",   # 👈 ADDED HERE
                 "Last Scan Loc",
                 "City name"
             ]
@@ -1382,11 +1395,16 @@ if uploaded_file:
                 }
             )
 
+            # ==============================
+            # DISPLAY TABLE
+            # ==============================
+
             st.dataframe(display_table, use_container_width=True)
 
             st.write(f"Showing **{len(display_table)} shipments**")
 
         except Exception:
+            st.info("SLA monitoring unavailable for this dataset.")
             st.info("SLA monitoring unavailable for this dataset.")
 # ==============================
 # TAB 4
